@@ -38,7 +38,8 @@ Route::middleware('language')->group(function () {
         //Unauthenticated routes
         Route::get('/', [AuthenticationController::class, 'index']);
         Route::post('/', [AuthenticationController::class, 'authenticate']);
-        Route::get('/leads', [AuthenticationController::class, 'showLeadsForm']);
+	Route::get('/leads', [AuthenticationController::class, 'showLeadsForm']);
+	Route::post('/leads', [AuthenticationController::class, 'createLead']);
         Route::get('/register', [AuthenticationController::class, 'showRegistrationForm']);
         Route::post('/register', [AuthenticationController::class, 'lookupEmail']);
         Route::get('/create/{token}', [AuthenticationController::class, 'showCreationForm']);
