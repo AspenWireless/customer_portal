@@ -37,6 +37,7 @@ if [ -f .env ]; then
 
     docker-compose stop
     sed -i '/API_PASSWORD=/d' .env
+    sed -i '/PORTAL_USER_KEY=/d' .env
 
     source .env
 fi
@@ -48,12 +49,15 @@ if lsof -Pi -sTCP:LISTEN | grep -P ':(80|443)[^0-9]' >/dev/null ; then
 fi
 
 APP_KEY="base64:$(head -c32 /dev/urandom | base64)";
+echo
 read -ep "Enter your portal domain name (such as portal.example.com): " -i "${NGINX_HOST:-}" NGINX_HOST
 read -ep "Enter Your API Username: " -i "${API_USERNAME:-}" API_USERNAME
 read -esp "Enter Your API Password (output will not be displayed): " API_PASSWORD
 echo
 read -ep "Enter Your Instance URL (e.g. https://example.sonar.software): " -i "${SONAR_URL:-}" SONAR_URL
 read -ep "Enter your email address: "  -i "${EMAIL_ADDRESS:-}" EMAIL_ADDRESS
+read -esp "Enter Your Portal User API Key (output will not be displayed): " PORTAL_USER_KEY
+echo
 
 TRIMMED_SONAR_URL=$(echo "$SONAR_URL" | sed 's:/*$::')
 
@@ -64,6 +68,7 @@ cat <<- EOF > ".env"
         API_PASSWORD=$API_PASSWORD
         SONAR_URL=$TRIMMED_SONAR_URL
         EMAIL_ADDRESS=$EMAIL_ADDRESS
+        PORTAL_USER_KEY=$PORTAL_USER_KEY
 EOF
 
 export APP_KEY
@@ -72,6 +77,7 @@ export API_USERNAME
 export API_PASSWORD
 export SONAR_URL
 export EMAIL_ADDRESS
+export PORTAL_USER_KEY
 
 docker pull sonarsoftware/customerportal:stable
 
@@ -92,7 +98,7 @@ docker-compose run --rm \
     -p 80:80 \
     -p 443:443 \
     --entrypoint "\
-      certbot certonly --standalone \
+      certbot certonly --test-cert --standalone \
         $email_arg \
         -d $NGINX_HOST \
         --rsa-key-size 4096 \
@@ -110,7 +116,7 @@ echo "### Reconfiguring renewal method to webroot..."
 
 docker-compose run --rm \
     --entrypoint "\
-      certbot certonly --webroot \
+      certbot certonly --test-cert --webroot \
         -d $NGINX_HOST \
         -w /var/www/certbot \
         --force-renewal" certbot
