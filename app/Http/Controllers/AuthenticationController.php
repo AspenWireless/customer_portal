@@ -80,7 +80,7 @@ class AuthenticationController extends Controller
 
         $usernameLanguage = UsernameLanguage::firstOrNew(['username' => $request->input('username')]);
         $usernameLanguage->language = $request->input('language');
-        $usernameLanguage->save()
+        $usernameLanguage->save();
 
         return redirect()->action([\App\Http\Controllers\BillingController::class, 'index']);
     }
@@ -211,11 +211,37 @@ class AuthenticationController extends Controller
 	$currentProvider = trim($request->input('currentProvider'));
 	$referrer = trim($request->input('referrer'));
 
-	
-	
+	$endpoint = getenv('SONAR_URL') . "/api/graphql";
+	$authToken = getenv('PORTAL_USER_KEY');
+	$qry = '{"query":"mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}", "data":"{"customer_portal":{"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}"}';
+
+	$headers = array();
+	$headers[] = 'Content-Type: application/json';
+	$headers[] = 'Authorization: Bearer '.$authToken;
+	return redirect()->back()->withErrors(utrans($authToken, [], $request));
+
+	$ch = curl_init();
+
+	curl_setopt($ch, CURLOPT_URL, $endpoint);
+	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, $qry);
+	curl_setopt($ch, CURLOPT_POST, 1);
+	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+	$response = curl_exec($ch);
+
+	if (curl_errno($ch)) {
+	    curl_close($ch);
+	    return redirect()->back()->withErrors(utrans(curl_error($ch), [], $request));
+	}
+
+	$decodedResponse = json_decode($response, false, JSON_PRETTY_PRINT);
+
+	curl_close($ch);
+
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
-            ->with('success', utrans("leads.leadCreated", [], $request));
+            ->with('success', utrans($response, [], $request));
     }
 
     /**
