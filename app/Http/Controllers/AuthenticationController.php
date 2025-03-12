@@ -93,6 +93,14 @@ class AuthenticationController extends Controller
     }
 
     /**
+     * Show the lead generation form
+     */
+    public function showLeadsForm(): Factory|View
+    {
+        return view('pages.root.leads');
+    }
+
+    /**
      * Look up an email address to see if it can be used to create a new account.
      */
     public function lookupEmail(LookupEmailRequest $request): RedirectResponse
