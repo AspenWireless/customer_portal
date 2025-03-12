@@ -6,7 +6,7 @@ return [
     'createTicket' => 'Create Ticket',
     'lookupEmail' => 'Look Up Email Address',
     'createAccount' => 'Create Account',
-    'signup' => 'Signup',
+    'submit' => 'Submit',
     'sendResetEmail' => 'Send Reset Email',
     'postReply' => 'Post a Reply',
     'delete' => 'Delete',

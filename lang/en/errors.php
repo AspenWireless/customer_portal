@@ -25,6 +25,7 @@ return [
     'resetLookupFailed' => 'That email address does not have an account associated with it. Please check and try again.',
     'resetTokenNotValid' => 'Password reset token is not valid. Please try resetting it again.',
     'invalidEmailAddress' => 'Email address does not match. Please try again.',
+    'tooManyFailedLeadAttempts' => 'You\'ve failed to signup for internet too many times in a short period of time. Please wait a few minutes and try again.',
     'tooManyFailedCreationAttempts' => 'You\'ve failed to create an account too many times in a short period of time. Please wait a few minutes and try again.',
     'tooManyFailedPasswordResets' => 'You\'ve failed to reset your password too many times in a short period of time. Please wait a few minutes and try again.',
     'couldNotFindAccount' => 'Sorry, but your account could not be found. Please try again later or try registering a new account.',
