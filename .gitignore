@@ -1,4 +1,5 @@
 .env
+customerportal-install.log
 .idea/*
 /node_modules
 /public/storage
