@@ -80,7 +80,7 @@ class AuthenticationController extends Controller
 
         $usernameLanguage = UsernameLanguage::firstOrNew(['username' => $request->input('username')]);
         $usernameLanguage->language = $request->input('language');
-        $usernameLanguage->save();
+        $usernameLanguage->save()
 
         return redirect()->action([\App\Http\Controllers\BillingController::class, 'index']);
     }
@@ -194,16 +194,24 @@ class AuthenticationController extends Controller
      */
     public function createLead(LeadCreationRequest $request): RedirectResponse
     {
-	$firstName = $request->input('firstName');
-	$lastName = $request->input('lastName');
-	$companyName = $request->input('companyName');
-	$serviceAddress = $request->input('serviceAddress');
-	$billingAddress = $request->input('billingAddress');
-	$email = $request->input('email');
-	$phone = $request->input('phone');
-	$plan = $request->input('plan');
-	$currentProvider = $request->input('currentProvider');
-	$referrer = $request->input('referrer');
+	if ($this->getThrottleValue('create_lead', hash('sha256', $request->getClientIp())) > 5) {
+            return redirect()->back()->withErrors(utrans('errors.tooManyFailedLeadAttempts', [], $request));
+	}
+
+	$this->incrementThrottleValue('create_lead', hash('sha256', $request->getClientIp()));
+
+	$firstName = trim($request->input('firstName'));
+	$lastName = trim($request->input('lastName'));
+	$companyName = trim($request->input('companyName'));
+	$serviceAddress = trim($request->input('serviceAddress'));
+	$billingAddress = trim($request->input('billingAddress'));
+	$email = trim($request->input('email'));
+	$phone = trim($request->input('phone'));
+	$plan = trim($request->input('plan'));
+	$currentProvider = trim($request->input('currentProvider'));
+	$referrer = trim($request->input('referrer'));
+
+	
 	
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
