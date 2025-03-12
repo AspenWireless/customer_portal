@@ -6,27 +6,51 @@
          <a>
          <img class="logo-form" src="/assets/img/logo.png">
          </a>
-         <h1 class="fake-half">{{trans("headers.createYourAccount",[],$language)}}</h1>
-         <p>{{trans("register.creationDescription",[],$language)}}</p>
-         {!! Form::open(['action' => ['\App\Http\Controllers\AuthenticationController@createAccount', 'token' => $creationToken->token], 'id' => 'createForm', 'method' => 'post']) !!}
+         <h1 class="fake-half">{{trans("root.signup",[],$language)}}</h1>
+         <p>{{trans("leads.leadDescription",[],$language)}}</p>
+	 {!! Form::open(['action' => ['\App\Http\Controllers\AuthenticationController@createLead'], 'id' => 'createForm', 'method' => 'post']) !!}
+         <div class="label label-text" style="display: inline-block; width: 49%">
+            <label for="firstName">{{trans("leads.firstName",[],$language)}}</label>
+            {!! Form::text("firstName",null,['id' => 'firstName', 'placeholder' => trans("leads.firstName",[],$language)]) !!}
+	 </div>
+         <div class="label label-text" style="display: inline-block; width: 49%; float: right">
+            <label for="lastName">{{trans("leads.lastName",[],$language)}}</label>
+            {!! Form::text("lastName",null,['id' => 'lastName', 'placeholder' => trans("leads.lastName",[],$language)]) !!}
+	 </div>
          <div class="label label-text">
-            <label for="email">{{trans("register.email",[],$language)}}</label>
-            {!! Form::email("email",null,['id' => 'email', 'placeholder' => trans("register.email",[],$language)]) !!}
+            <label for="companyName">{{trans("leads.companyName",[],$language)}}</label>
+            {!! Form::text("companyName",null,['id' => 'companyName', 'placeholder' => trans("leads.companyName",[],$language)]) !!}
+	 </div>
+         <div class="label label-text">
+            <label for="serviceAddress">{{trans("leads.serviceAddress",[],$language)}}</label>
+            {!! Form::text("serviceAddress",null,['id' => 'serviceAddress', 'placeholder' => trans("leads.serviceAddress",[],$language)]) !!}
+	 </div>
+         <div class="label label-text">
+            <label for="billingAddress">{{trans("leads.billingAddress",[],$language)}}</label>
+            {!! Form::text("billingAddress",null,['id' => 'billingAddress', 'placeholder' => trans("leads.billingAddress",[],$language)]) !!}
          </div>
          <div class="label label-text">
-            <label for="username">{{trans("register.username",[],$language)}}</label>
-            {!! Form::text("username",null,['id' => 'username', 'placeholder' => trans("register.username",[],$language)]) !!}
+            <label for="email">{{trans("leads.email",[],$language)}}</label>
+            {!! Form::email("email",null,['id' => 'email', 'placeholder' => trans("leads.email",[],$language)]) !!}
          </div>
          <div class="label label-text">
-            <label for="password">{{trans("register.password",[],$language)}}</label>
-            {!! Form::password("password",['id' => 'password', 'placeholder' => trans("register.password",[],$language)]) !!}
+            <label for="phone">{{trans("leads.phone",[],$language)}}</label>
+            {!! Form::text("phone",null,['id' => 'phone', 'placeholder' => trans("leads.phone",[],$language)]) !!}
          </div>
          <div class="label label-text">
-            <label for="password_confirmation">{{trans("register.confirmPassword",[],$language)}}</label>
-            {!! Form::password("password_confirmation",['id' => 'password_confirmation', 'placeholder' => trans("register.confirmPassword",[],$language)]) !!}
+            <label for="plan">{{trans("leads.plan",[],$language)}}</label>
+            {!! Form::text("plan",null,['id' => 'plan', 'placeholder' => trans("leads.plan",[],$language)]) !!}
+	 </div>
+         <div class="label label-text">
+            <label for="currentProvider">{{trans("leads.currentProvider",[],$language)}}</label>
+            {!! Form::text("currentProvider",null,['id' => 'currentProvider', 'placeholder' => trans("leads.currentProvider",[],$language)]) !!}
+	 </div>
+         <div class="label label-text">
+            <label for="referrer">{{trans("leads.referrer",[],$language)}}</label>
+            {!! Form::text("referrer",null,['id' => 'referrer', 'placeholder' => trans("leads.referrer",[],$language)]) !!}
          </div>
          <div class="half vcenter label">
-            <div><button type="submit" value="{{trans("actions.createAccount",[],$language)}}">{{trans("actions.createAccount",[],$language)}}</button></div>
+            <div><button type="submit" value="{{trans("actions.signup",[],$language)}}">{{trans("actions.signup",[],$language)}}</button></div>
          </div>
          {!! Form::close() !!}
          <small><a href="{{action([\App\Http\Controllers\AuthenticationController::class, 'index'])}}">{{trans("register.back",[],$language)}}</a></small>
@@ -43,5 +67,5 @@ var passwordStrength = {{config("customer_portal.password_strength_required")}};
 </script>
 <script type="text/javascript" src="/assets/js/pages/register/register.js"></script>
 <script type="text/javascript" src="/assets/libs/js-validation/jsvalidation.min.js"></script>
-{!! JsValidator::formRequest('App\Http\Requests\AccountCreationRequest','#createForm') !!}
+{!! JsValidator::formRequest('App\Http\Requests\LeadCreationRequest','#createForm') !!}
 @endsection
