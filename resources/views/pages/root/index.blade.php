@@ -10,6 +10,7 @@
             </div>
          @endif
          <h1 class="fake-half">{{trans('actions.loginMessage', ['ispName' => config("customer_portal.company_name")],$language)}}</h1>
+         <a class="button" href="{{action([\App\Http\Controllers\AuthenticationController::class, 'showRegistrationForm'])}}">{{trans("New Customer Signup",[],$language)}}</a>
          {!! Form::open(['action' => '\App\Http\Controllers\AuthenticationController@authenticate']) !!}
 	     <input type="hidden" name="language" value="{{$language ?? 'en'}}">
          <div class="label label-text">
