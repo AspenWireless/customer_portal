@@ -50,7 +50,7 @@
             {!! Form::text("referrer",null,['id' => 'referrer', 'placeholder' => trans("leads.referrer",[],$language)]) !!}
          </div>
          <div class="half vcenter label">
-            <div><button type="submit" value="{{trans("actions.signup",[],$language)}}">{{trans("actions.signup",[],$language)}}</button></div>
+            <div><button type="submit" value="{{trans("actions.submit",[],$language)}}">{{trans("actions.submit",[],$language)}}</button></div>
          </div>
          {!! Form::close() !!}
          <small><a href="{{action([\App\Http\Controllers\AuthenticationController::class, 'index'])}}">{{trans("register.back",[],$language)}}</a></small>
