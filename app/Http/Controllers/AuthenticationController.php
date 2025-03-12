@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\CreationToken;
 use App\Http\Requests\AccountCreationRequest;
 use App\Http\Requests\AuthenticationRequest;
+use App\Http\Requests\LeadCreationRequest;
 use App\Http\Requests\LookupEmailRequest;
 use App\Http\Requests\PasswordUpdateRequest;
 use App\Http\Requests\SendPasswordResetRequest;
@@ -186,6 +187,27 @@ class AuthenticationController extends Controller
         }
 
         return view('pages.root.create', compact('creationToken'));
+    }
+
+    /**
+     * Create a new lead
+     */
+    public function createLead(LeadCreationRequest $request): RedirectResponse
+    {
+	$firstName = $request->input('firstName');
+	$lastName = $request->input('lastName');
+	$companyName = $request->input('companyName');
+	$serviceAddress = $request->input('serviceAddress');
+	$billingAddress = $request->input('billingAddress');
+	$email = $request->input('email');
+	$phone = $request->input('phone');
+	$plan = $request->input('plan');
+	$currentProvider = $request->input('currentProvider');
+	$referrer = $request->input('referrer');
+	
+	return redirect()
+            ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
+            ->with('success', utrans("leads.leadCreated", [], $request));
     }
 
     /**
