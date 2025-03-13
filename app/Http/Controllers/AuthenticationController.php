@@ -213,18 +213,18 @@ class AuthenticationController extends Controller
 
 	$endpoint = getenv('SONAR_URL') . "/api/graphql";
 	$authToken = getenv('PORTAL_USER_KEY');
-	$qry = '{"query":"mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}", "data":"{"customer_portal":{"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}"}';
+	$qry = array('query'=>'mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}', 'data'=>'{"customer_portal": {"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}');
+	// $qry = '{"query":"mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}", "data":"{"customer_portal": {"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}"}';
 
 	$headers = array();
 	$headers[] = 'Content-Type: application/json';
 	$headers[] = 'Authorization: Bearer '.$authToken;
-	return redirect()->back()->withErrors(utrans($authToken, [], $request));
 
 	$ch = curl_init();
 
 	curl_setopt($ch, CURLOPT_URL, $endpoint);
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_POSTFIELDS, $qry);
+	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($qry));
 	curl_setopt($ch, CURLOPT_POST, 1);
 	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
