@@ -190,6 +190,36 @@ class AuthenticationController extends Controller
     }
 
     /**
+     * Send a query to the Sonar API
+     */
+    private function doSonarQuery(string $query)
+    {
+        $endpoint = getenv('SONAR_URL') . "/api/graphql";
+        $authToken = getenv('PORTAL_USER_KEY');
+
+        $headers = array();
+        $headers[] = 'Content-Type: application/json';
+        $headers[] = 'Authorization: Bearer '.$authToken;
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $endpoint);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $query);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        if (curl_errno($ch)) {
+            return ["error", curl_error($ch)];
+        }
+
+        return ["success", $response];
+    }
+
+    /**
      * Create a new lead
      */
     public function createLead(LeadCreationRequest $request): RedirectResponse
@@ -204,6 +234,7 @@ class AuthenticationController extends Controller
 	$lastName = trim($request->input('lastName'));
 	$companyName = trim($request->input('companyName'));
 	$serviceAddress = trim($request->input('serviceAddress'));
+	$serviceLine1 = "3846 Stone Wall Trail";
 	$billingAddress = trim($request->input('billingAddress'));
 	$email = trim($request->input('email'));
 	$phone = trim($request->input('phone'));
@@ -213,35 +244,25 @@ class AuthenticationController extends Controller
 
 	$endpoint = getenv('SONAR_URL') . "/api/graphql";
 	$authToken = getenv('PORTAL_USER_KEY');
-	$qry = array('query'=>'mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}', 'data'=>'{"customer_portal": {"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}');
-	// $qry = '{"query":"mutation createAccount($customer_portal: CreateAccountMutationInput) {createAccount(input: $customer_portal) {name}}", "data":"{"customer_portal": {"account_status_id": 111, "account_type_id": 111, "name": "asd", "primary_contact": {"name": "asd"}, "company_id": 111}}"}';
+	$companyID = getenv('COMPANY_ID');
+	$leadStatusID = getenv('LEAD_STATUS_ID');
 
-	$headers = array();
-	$headers[] = 'Content-Type: application/json';
-	$headers[] = 'Authorization: Bearer '.$authToken;
+	$name = $firstName.' '.$lastName;
 
-	$ch = curl_init();
+	$addrQuery = '';
 
-	curl_setopt($ch, CURLOPT_URL, $endpoint);
-	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-	curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($qry));
-	curl_setopt($ch, CURLOPT_POST, 1);
-	curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+	$leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
 
-	$response = curl_exec($ch);
-
-	if (curl_errno($ch)) {
-	    curl_close($ch);
-	    return redirect()->back()->withErrors(utrans(curl_error($ch), [], $request));
+	list($status, $output) = $this->doSonarQuery($leadQuery);
+	if ($status != "success") {
+	    return redirect()->back()->withErrors(utrans("Error: ".$output, [], $request));
 	}
-
-	$decodedResponse = json_decode($response, false, JSON_PRETTY_PRINT);
-
-	curl_close($ch);
-
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
-            ->with('success', utrans($response, [], $request));
+            ->with('success', utrans($output, [], $request));
+	return redirect()
+            ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
+            ->with('success', utrans("leads.leadCreated", [], $request));
     }
 
     /**
