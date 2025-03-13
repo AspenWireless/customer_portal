@@ -233,9 +233,21 @@ class AuthenticationController extends Controller
 	$firstName = trim($request->input('firstName'));
 	$lastName = trim($request->input('lastName'));
 	$companyName = trim($request->input('companyName'));
-	$serviceAddress = trim($request->input('serviceAddress'));
-	$serviceLine1 = "3846 Stone Wall Trail";
-	$billingAddress = trim($request->input('billingAddress'));
+
+	$serviceLine1 = trim($request->input('serviceLine1'));
+        $serviceLine2 = trim($request->input('serviceLine2'));
+        $serviceCity = trim($request->input('serviceCity'));
+        $serviceState = trim($request->input('serviceState'));
+        $serviceZip = trim($request->input('serviceZip'));
+	$serviceLat = trim($request->input('serviceLat'));
+	$serviceLong = trim($request->input('serviceLong'));
+
+        $billingLine1 = trim($request->input('billingLine1'));
+        $billingLine2 = trim($request->input('billingLine2'));
+        $billingCity = trim($request->input('billingCity'));
+        $billingState = trim($request->input('billingState'));
+        $billingZip = trim($request->input('billingZip'));
+
 	$email = trim($request->input('email'));
 	$phone = trim($request->input('phone'));
 	$plan = trim($request->input('plan'));
@@ -249,11 +261,23 @@ class AuthenticationController extends Controller
 
 	$name = $firstName.' '.$lastName;
 
-	$addrQuery = '';
+	$addrVars = '{"lead_address": {"line1": "'.$serviceLine1.'", "line2": "", "city": "'.$serviceCity.'", "subdivision": "US_'.$serviceState.'", "zip": "'.$serviceZip.'", "country": "US", "latitude": '.$serviceLat.', "longitude": '.$serviceLong.'}}';
 
-	$leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
+	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
-	list($status, $output) = $this->doSonarQuery($leadQuery);
+	// $leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
+
+	$leadVars = '';
+
+	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
+
+	$attachAddrVars = '';
+
+	$attachAddrQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachAddrVars.'}';
+
+	// return redirect()->back()->withErrors(utrans($addrQuery.' '.$leadQuery.' '.$attachAddrQuery, [], $request));
+
+	list($status, $output) = $this->doSonarQuery($addrQuery);
 	if ($status != "success") {
 	    return redirect()->back()->withErrors(utrans("Error: ".$output, [], $request));
 	}

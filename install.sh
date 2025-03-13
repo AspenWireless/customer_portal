@@ -60,6 +60,8 @@ read -esp "Enter your Portal User API Key (output will not be displayed): " PORT
 echo
 read -ep "Enter your Company ID: " -i "${COMPANY_ID:-}" COMPANY_ID
 read -ep "Enter your Lead Status ID: " -i "${LEAD_STATUS_ID:-}" LEAD_STATUS_ID
+echo "Selectable Plans. Format: 'planID1:acctTypeID1:planName1;planID2:acctTypeID2:planName2'. Handles spaces in the plan names. Doesn't matter if last/only item in list has a semicolon at the end."
+read -ep "Enter: " -i "${SELECTABLE_PLANS:-}" SELECTABLE_PLANS
 
 TRIMMED_SONAR_URL=$(echo "$SONAR_URL" | sed 's:/*$::')
 
@@ -73,6 +75,7 @@ cat <<- EOF > ".env"
         PORTAL_USER_KEY=$PORTAL_USER_KEY
         COMPANY_ID=$COMPANY_ID
         LEAD_STATUS_ID=$LEAD_STATUS_ID
+        SELECTABLE_PLANS=$SELECTABLE_PLANS
 EOF
 
 export APP_KEY
@@ -84,6 +87,7 @@ export EMAIL_ADDRESS
 export PORTAL_USER_KEY
 export COMPANY_ID
 export LEAD_STATUS_ID
+export SELECTABLE_PLANS
 
 docker pull sonarsoftware/customerportal:stable
 

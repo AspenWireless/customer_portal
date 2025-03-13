@@ -51,6 +51,24 @@ function getAvailableLanguages($language = 'en')
 }
 
 /**
+ * Get the selectable plans from .env file
+ *
+ * @return array
+ */
+function getSelectablePlans()
+{
+    // $envPlans = getenv('SELECTABLE_PLANS');
+    $envPlans = "89:1:Little Nest 1 Gig;88:2:Soaing Eagle 10 Gig";
+
+    $planArray = explode(";", $envPlans);
+
+    $output = [];
+    $output["88:2"] = "Soaring Eagle 10 Gig";
+    $output["89:1"] = "Little Nest 1 Gig";
+    return $output;
+}
+
+/**
  * Translate to the user language
  *
  * @param  $request
