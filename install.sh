@@ -55,7 +55,7 @@ read -ep "Enter Your API Username: " -i "${API_USERNAME:-}" API_USERNAME
 read -esp "Enter Your API Password (output will not be displayed): " API_PASSWORD
 echo
 read -ep "Enter Your Instance URL (e.g. https://example.sonar.software): " -i "${SONAR_URL:-}" SONAR_URL
-read -ep "Enter your email address: "  -i "${EMAIL_ADDRESS:-}" EMAIL_ADDRESS
+read -ep "Enter your email address: " -i "${EMAIL_ADDRESS:-}" EMAIL_ADDRESS
 read -esp "Enter Your Portal User API Key (output will not be displayed): " PORTAL_USER_KEY
 echo
 
