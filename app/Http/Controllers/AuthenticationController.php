@@ -218,12 +218,17 @@ class AuthenticationController extends Controller
 
 	$decodedResponse = json_decode($response);
 
-	if (count($decodedResponse->errors) > 0) {
+	if (isset($decodedResponse->errors)) {
 	    //return ["error", utrans('errors.leadCreationFailed', [], $request)];
-	    return ["error", $decodedResponse->errors[0]->message];
+
+	    $output = "";
+	    for ($i = 0; $i < count($decodedResponse->errors); $i++) {
+		$output = $output." [".$decodedResponse->errors[$i]->message."]";
+	    }
+	    return ["error", $output];
 	}
 
-        return ["success", $response];
+        return ["success", $decodedResponse];
     }
 
     /**
@@ -281,11 +286,13 @@ class AuthenticationController extends Controller
 
 	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
-	// need to get addr id from result
-	// need to handle phone # extensions
-	$addrID = 'abacab';
+	list($addrStatus, $addrOutput) = $this->doSonarQuery($addrQuery);
+        if ($addrStatus != "success") {
+            return redirect()->back()->withErrors(utrans("Error: ".$addrOutput, [], $request));
+	}
 
-	//$leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
+	// need to handle phone # extensions
+	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
 
 	$doBillingLine2 = '';
 
@@ -300,11 +307,11 @@ class AuthenticationController extends Controller
 	}
 
 	if (strlen($currentProvider) > 0) {
-            $noteMsg = $noteMsg.'\nCurrent Provider: '.$currentProvider;
+            $noteMsg = $noteMsg.' Current Provider: '.$currentProvider;
 	}
 
 	if (strlen($referrer) > 0) {
-            $noteMsg = $noteMsg.'\nHeard About Us: '.$referrer;
+            $noteMsg = $noteMsg.' Heard About Us: '.$referrer;
 	}
 
 	$doNoteMsg = '';
@@ -318,26 +325,25 @@ class AuthenticationController extends Controller
 
 	$phone = str_replace($phoneReplaces, "", $phone);
 
-	$leadVars = '{"lead_account": {"name": "'.$name.'"'.$doNoteMsg.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "Street addr"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
+	$leadVars = '{"lead_account": {"name": "'.$name.'"'.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "'.$billingLine1.'"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
 
 	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
 
-	// need to get account id from result
-	$acctID = 'abacab';
+	list($leadStatus, $leadOutput) = $this->doSonarQuery($leadQuery);
+        if ($leadStatus != "success") {
+            return redirect()->back()->withErrors(utrans($leadQuery." Error: ".$leadOutput, [], $request));
+	}
+
+	$acctID = $leadOutput->{'data'}->createAccount->id;
 
 	$attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
 
 	$attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
 
-	return redirect()->back()->withErrors(utrans('1: '.$addrQuery.' 2: '.$leadQuery.' 3: '.$attachServiceQuery, [], $request));
-
-	list($status, $output) = $this->doSonarQuery($addrQuery);
-	if ($status != "success") {
-	    return redirect()->back()->withErrors(utrans("Error: ".$output, [], $request));
+	list($attachStatus, $attachOutput) = $this->doSonarQuery($attachServiceQuery);
+	if ($attachStatus != "success") {
+	    return redirect()->back()->withErrors(utrans("Error: ".$attachOutput, [], $request));
 	}
-	return redirect()
-            ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
-	    ->with('success', utrans($output, [], $request));
 
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
