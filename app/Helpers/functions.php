@@ -51,6 +51,16 @@ function getAvailableLanguages($language = 'en')
 }
 
 /**
+ * Returns a list of state codes
+ *
+ * @return array
+ */
+function getStateCodes()
+{
+    return explode("|", "AA|AE|AK|AL|AP|AR|AS|AZ|CA|CO|CT|DE|DC|FL|FM|GA|GU|HI|IA|ID|IL|IN|KS|KY|LA|MA|MD|ME|MH|MI|MN|MO|MP|MS|MT|NC|ND|NE|NH|NJ|NM|NV|NY|OH|OK|OR|PA|PR|PW|RI|SC|SD|TN|TX|UM|UT|VA|VI|VT|WA|WI|WV|WY");
+}
+
+/**
  * Get the selectable plans from .env file
  *
  * @return array

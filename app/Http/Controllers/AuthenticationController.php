@@ -214,7 +214,14 @@ class AuthenticationController extends Controller
 
         if (curl_errno($ch)) {
             return ["error", curl_error($ch)];
-        }
+	}
+
+	$decodedResponse = json_decode($response);
+
+	if (count($decodedResponse->errors) > 0) {
+	    //return ["error", utrans('errors.leadCreationFailed', [], $request)];
+	    return ["error", $decodedResponse->errors[0]->message];
+	}
 
         return ["success", $response];
     }
@@ -261,21 +268,68 @@ class AuthenticationController extends Controller
 
 	$name = $firstName.' '.$lastName;
 
-	$addrVars = '{"lead_address": {"line1": "'.$serviceLine1.'", "line2": "", "city": "'.$serviceCity.'", "subdivision": "US_'.$serviceState.'", "zip": "'.$serviceZip.'", "country": "US", "latitude": '.$serviceLat.', "longitude": '.$serviceLong.'}}';
+	$planID = explode(":", $plan)[0];
+	$acctTypeID = explode(":", $plan)[1];
+
+	$doServiceLine2 = '';
+
+	if (strlen($serviceLine2) > 0) {
+	    $doServiceLine2 = ', "line2": "'.$serviceLine2.'"';
+	}
+
+	$addrVars = '{"lead_address": {"line1": "'.$serviceLine1.'"'.$doServiceLine2.', "city": "'.$serviceCity.'", "subdivision": "US_'.$serviceState.'", "zip": "'.$serviceZip.'", "country": "US", "latitude": '.$serviceLat.', "longitude": '.$serviceLong.'}}';
 
 	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
-	// $leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
+	// need to get addr id from result
+	// need to handle phone # extensions
+	$addrID = 'abacab';
 
-	$leadVars = '';
+	//$leadQuery = '{"query":"mutation createAccount($create_lead: CreateAccountMutationInput) {createAccount(input: $create_lead) {name}}", "variables":{"create_lead": {"account_status_id": '.$leadStatusID.', "account_type_id": '.'1'.', "name": "'.$name.'", "primary_contact": {"name": "'.$name.'"}, "company_id": '.$companyID.'}}}';
+
+	$doBillingLine2 = '';
+
+	if (strlen($billingLine2) > 0) {
+	    $doBillingLine2 = ', "line2": "'.$billingLine2.'"';
+	}
+
+	$noteMsg = '';
+
+	if (strlen($companyName) > 0) {
+	    $noteMsg = 'Company Name: '.$companyName;
+	}
+
+	if (strlen($currentProvider) > 0) {
+            $noteMsg = $noteMsg.'\nCurrent Provider: '.$currentProvider;
+	}
+
+	if (strlen($referrer) > 0) {
+            $noteMsg = $noteMsg.'\nHeard About Us: '.$referrer;
+	}
+
+	$doNoteMsg = '';
+
+	if (strlen($noteMsg) > 0) {
+	    $doNoteMsg = ', "note": {"message": "'.$noteMsg.'", "priority": "NORMAL"}';
+	}
+
+	// need to handle phone # ext
+	$phoneReplaces = array("(", ")", "-", " ");
+
+	$phone = str_replace($phoneReplaces, "", $phone);
+
+	$leadVars = '{"lead_account": {"name": "'.$name.'"'.$doNoteMsg.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "Street addr"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
 
 	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
 
-	$attachAddrVars = '';
+	// need to get account id from result
+	$acctID = 'abacab';
 
-	$attachAddrQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachAddrVars.'}';
+	$attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
 
-	// return redirect()->back()->withErrors(utrans($addrQuery.' '.$leadQuery.' '.$attachAddrQuery, [], $request));
+	$attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
+
+	return redirect()->back()->withErrors(utrans('1: '.$addrQuery.' 2: '.$leadQuery.' 3: '.$attachServiceQuery, [], $request));
 
 	list($status, $output) = $this->doSonarQuery($addrQuery);
 	if ($status != "success") {
@@ -283,7 +337,8 @@ class AuthenticationController extends Controller
 	}
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
-            ->with('success', utrans($output, [], $request));
+	    ->with('success', utrans($output, [], $request));
+
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
             ->with('success', utrans("leads.leadCreated", [], $request));
