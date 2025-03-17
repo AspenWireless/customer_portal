@@ -25,11 +25,21 @@
          <div class="label label-text">
             <label for="email">{{trans("leads.email",[],$language)}}</label>
             {!! Form::email("email",null,['id' => 'email', 'placeholder' => trans("leads.email",[],$language)]) !!}
+	 </div>
+	 <div style="text-align: center">
+         <div class="label label-text" style="display: inline-block; width: 15%; float: left; text-align: left">
+            <label>&nbsp;</label>
+            {!! Form::text("phoneCountry",null,['id' => 'phoneCountry', 'disabled' => 'disabled', 'placeholder' => 'US&nbsp;+1']) !!}
          </div>
-         <div class="label label-text">
+         <div class="label label-text" style="display: inline-block; width: 61%; text-align: left">
             <label for="phone">{{trans("leads.phone",[],$language)}}</label>
-            {!! Form::text("phone",null,['id' => 'phone', 'placeholder' => trans("leads.phone",[],$language)]) !!}
+            {!! Form::tel("phone",null,['id' => 'phone', 'placeholder' => trans("leads.phone",[],$language)]) !!}
          </div>
+         <div class="label label-text" style="display: inline-block; width: 20%; float: right; text-align: left">
+            <label for="ext">{{trans("leads.ext",[],$language)}}</label>
+            {!! Form::number("ext",null,['id' => 'ext', 'placeholder' => trans("leads.ext",[],$language)]) !!}
+	 </div>
+	 </div>
          <label>{{trans("leads.plan",[],$language)}}</label>
          <select name="plan" class="form-control">
          @foreach(getSelectablePlans() as $key => $value)
@@ -68,18 +78,18 @@
 	 <div style="text-align: center">
          <div class="label label-text" style="display: inline-block; width: 32%; float: left; text-align: left">
             <label for="serviceZip">{{trans("leads.addrZip",[],$language)}}</label>
-            {!! Form::text("serviceZip",null,['id' => 'serviceZip', 'placeholder' => trans("leads.addrZip",[],$language)]) !!}
+            {!! Form::number("serviceZip",null,['id' => 'serviceZip', 'placeholder' => trans("leads.addrZip",[],$language)]) !!}
          </div>
          <div class="label label-text" style="display: inline-block; width: 32%; text-align: left">
             <label for="serviceLat">{{trans("leads.addrLat",[],$language)}}</label>
-            {!! Form::text("serviceLat",null,['id' => 'serviceLat', 'placeholder' => trans("leads.addrLat",[],$language)]) !!}
+            {!! Form::number("serviceLat",null,['id' => 'serviceLat', 'placeholder' => trans("leads.addrLat",[],$language)]) !!}
          </div>
          <div class="label label-text" style="display: inline-block; width: 32%; float: right; text-align: left">
             <label for="serviceLong">{{trans("leads.addrLong",[],$language)}}</label>
-            {!! Form::text("serviceLong",null,['id' => 'serviceLong', 'placeholder' => trans("leads.addrLong",[],$language)]) !!}
+            {!! Form::number("serviceLong",null,['id' => 'serviceLong', 'placeholder' => trans("leads.addrLong",[],$language)]) !!}
 	 </div>
 	 </div>
-	 <h1 style="font-size: 20px">{{trans("leads.billingAddrHeader",[],$language)}}</h1>
+	 <h1 style="font-size: 20px">{{trans("leads.billingAddrHeader",[],$language)}}<button onclick="doSameAsAbove();" style="margin: 0 0 0 10px">Same as Above</button></h1>
 	 <div class="label label-text" style="display: inline-block; width: 79%">
             <label for="billingLine1">{{trans("leads.addrLine1",[],$language)}}</label>
             {!! Form::text("billingLine1",null,['id' => 'billingLine1', 'placeholder' => trans("leads.addrLine1",[],$language)]) !!}
@@ -102,7 +112,7 @@
          </div>
          <div class="label label-text">
             <label for="billingZip">{{trans("leads.addrZip",[],$language)}}</label>
-            {!! Form::text("billingZip",null,['id' => 'billingZip', 'placeholder' => trans("leads.addrZip",[],$language)]) !!}
+            {!! Form::number("billingZip",null,['id' => 'billingZip', 'placeholder' => trans("leads.addrZip",[],$language)]) !!}
          </div>
          <div class="half vcenter label">
             <div><button type="submit" value="{{trans("actions.submit",[],$language)}}">{{trans("actions.submit",[],$language)}}</button></div>
@@ -121,6 +131,27 @@ window.onbeforeunload = function(e){
 var passwordStrength = {{config("customer_portal.password_strength_required")}};
 </script>
 <script type="text/javascript" src="/assets/js/pages/register/register.js"></script>
+<script nonce="{{ csp_nonce() }}">
+function doSameAsAbove() {
+    let street1 = document.getElementById('serviceLine1');
+    let apt1 = document.getElementById('serviceLine2');
+    let city1 = document.getElementById('serviceCity');
+    let state1 = document.getElementById('serviceState');
+    let zip1 = document.getElementById('serviceZip');
+
+    let street2 = document.getElementById('billingLine1');
+    let apt2 = document.getElementById('billingLine2');
+    let city2 = document.getElementById('billingCity');
+    let state2 = document.getElementById('billingState');
+    let zip2 = document.getElementById('billingZip');
+
+    street2.value = street1.value;
+    apt2.value = apt1.value;
+    city2.value = city1.value;
+    // state2.value = state1.value;
+    zip2.value = zip1.value;
+}
+</script>
 <script type="text/javascript" src="/assets/libs/js-validation/jsvalidation.min.js"></script>
 {!! JsValidator::formRequest('App\Http\Requests\LeadCreationRequest','#createForm') !!}
 @endsection

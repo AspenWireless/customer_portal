@@ -135,7 +135,7 @@ class AuthenticationController extends Controller
             $creationToken->token = uniqid();
         }
 
-        $creationToken->save();
+	$creationToken->save();
 
         $languageService = App::make(LanguageService::class);
         $language = $languageService->getUserLanguage($request);
@@ -192,7 +192,7 @@ class AuthenticationController extends Controller
     /**
      * Send a query to the Sonar API
      */
-    private function doSonarQuery(string $query)
+    private function doSonarQuery(LeadCreationRequest $request, string $query)
     {
         $endpoint = getenv('SONAR_URL') . "/api/graphql";
         $authToken = getenv('PORTAL_USER_KEY');
@@ -226,6 +226,8 @@ class AuthenticationController extends Controller
 		$output = $output." [".$decodedResponse->errors[$i]->message."]";
 	    }
 	    return ["error", $output];
+	} else if (!isset($decodedResponse->{'data'})) {
+	    return ["error", utrans('errors.leadCreationFailed', [], $request)];
 	}
 
         return ["success", $decodedResponse];
@@ -286,7 +288,7 @@ class AuthenticationController extends Controller
 
 	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
-	list($addrStatus, $addrOutput) = $this->doSonarQuery($addrQuery);
+	list($addrStatus, $addrOutput) = $this->doSonarQuery($request, $addrQuery);
         if ($addrStatus != "success") {
             return redirect()->back()->withErrors(utrans("Error: ".$addrOutput, [], $request));
 	}
@@ -329,9 +331,9 @@ class AuthenticationController extends Controller
 
 	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
 
-	list($leadStatus, $leadOutput) = $this->doSonarQuery($leadQuery);
+	list($leadStatus, $leadOutput) = $this->doSonarQuery($request, $leadQuery);
         if ($leadStatus != "success") {
-            return redirect()->back()->withErrors(utrans($leadQuery." Error: ".$leadOutput, [], $request));
+            return redirect()->back()->withErrors(utrans("Error: ".$leadOutput, [], $request));
 	}
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
@@ -340,11 +342,15 @@ class AuthenticationController extends Controller
 
 	$attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
 
-	list($attachStatus, $attachOutput) = $this->doSonarQuery($attachServiceQuery);
+	list($attachStatus, $attachOutput) = $this->doSonarQuery($request, $attachServiceQuery);
 	if ($attachStatus != "success") {
 	    return redirect()->back()->withErrors(utrans("Error: ".$attachOutput, [], $request));
 	}
 
+	// $emailRequest = new LookupEmailRequest();
+	// $emailRequest->mergeIfMissing(['email' => $email]);
+
+	// return $this->lookupEmail($emailRequest);
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
             ->with('success', utrans("leads.leadCreated", [], $request));

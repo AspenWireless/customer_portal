@@ -19,6 +19,7 @@ return [
     'addrLong' => 'Longitude',
     'email' => 'Email Address',
     'phone' => 'Phone Number',
+    'ext' => 'Ext',
     'plan' => 'Select Plan',
     'currentProvider' => 'Who is your current internet provider?',
     'referrer' => 'How did you hear about us?',
