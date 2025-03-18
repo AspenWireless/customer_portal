@@ -11,6 +11,7 @@ return [
     'billingAddrHeader' => 'Mailing/Billing Address',
     'addrLine1' => 'Street Address',
     'addrLine2' => 'Apt #',
+    'location' => 'Search for a location',
     'addrCity' => 'City',
     'addrState' => 'State/Province',
     'addrZip' => 'Zip Code',

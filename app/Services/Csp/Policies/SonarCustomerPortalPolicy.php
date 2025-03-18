@@ -20,7 +20,11 @@ class SonarCustomerPortalPolicy extends Basic
             ->addDirective(Directive::CONNECT, Keyword::SELF)
             ->addDirective(Directive::DEFAULT, Keyword::SELF)
             ->addDirective(Directive::FORM_ACTION, Keyword::SELF)
-            ->addDirective(Directive::IMG, Keyword::SELF)
+	    ->addDirective(Directive::IMG, [
+		Keyword::SELF,
+		Scheme::DATA,
+		'https://maps.gstatic.com',
+	    ])
             ->addDirective(Directive::MEDIA, Keyword::SELF)
             ->addDirective(Directive::OBJECT, Keyword::NONE)
             ->addDirective(Directive::SCRIPT, Keyword::SELF)
@@ -52,15 +56,25 @@ class SonarCustomerPortalPolicy extends Basic
 
             ->addDirective(Directive::UPGRADE_INSECURE_REQUESTS, Value::NO_VALUE)
 
+            ->addDirective(Directive::CONNECT, [
+                'self',
+                'maps.googleapis.com', // Required for address autofill on lead creation form
+            ])
+
+            ->addDirective(Directive::SCRIPT, [
+                'self',
+                'maps.googleapis.com',
+            ])
+
             ->addDirective(Directive::SCRIPT, [
                 'self',
                 'js.stripe.com',
             ])
 
-			->addDirective(Directive::STYLE, [
-				'self',
+	    ->addDirective(Directive::STYLE, [
+		'self',
                 'unsafe-inline', // Required for TinyMCE https://www.tiny.cloud/docs/tinymce/6/tinymce-and-csp/
-			])
+	    ])
 
             ->addDirective(Directive::CONNECT, [
                 'self',

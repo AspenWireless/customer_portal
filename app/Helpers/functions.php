@@ -67,14 +67,18 @@ function getStateCodes()
  */
 function getSelectablePlans()
 {
-    // $envPlans = getenv('SELECTABLE_PLANS');
-    $envPlans = "89:1:Little Nest 1 Gig;88:2:Soaing Eagle 10 Gig";
-
-    $planArray = explode(";", $envPlans);
+    $envPlans = getenv('SELECTABLE_PLANS');
+    $plansArray = explode(";", $envPlans);
 
     $output = [];
-    $output["88:2"] = "Soaring Eagle 10 Gig";
-    $output["89:1"] = "Little Nest 1 Gig";
+
+    for ($i = 0; $i < count($plansArray); $i++) {
+	$planArray = explode(":", $plansArray[$i]);
+	if (count($planArray) != 3) {
+	    continue;
+	}
+	$output[$planArray[0] . ":" . $planArray[1]] = $planArray[2];
+    }
     return $output;
 }
 

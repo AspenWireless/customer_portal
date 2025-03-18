@@ -192,7 +192,7 @@ class AuthenticationController extends Controller
     /**
      * Send a query to the Sonar API
      */
-    private function doSonarQuery(LeadCreationRequest $request, string $query)
+    private function doSonarQuery(string $query)
     {
         $endpoint = getenv('SONAR_URL') . "/api/graphql";
         $authToken = getenv('PORTAL_USER_KEY');
@@ -219,18 +219,40 @@ class AuthenticationController extends Controller
 	$decodedResponse = json_decode($response);
 
 	if (isset($decodedResponse->errors)) {
-	    //return ["error", utrans('errors.leadCreationFailed', [], $request)];
-
 	    $output = "";
 	    for ($i = 0; $i < count($decodedResponse->errors); $i++) {
 		$output = $output." [".$decodedResponse->errors[$i]->message."]";
 	    }
 	    return ["error", $output];
 	} else if (!isset($decodedResponse->{'data'})) {
-	    return ["error", utrans('errors.leadCreationFailed', [], $request)];
+	    return ["error", "Empty response body"];
 	}
 
         return ["success", $decodedResponse];
+    }
+
+    private function doTicket(string $desc, string $ticketStatus)
+    {
+	$groupID = '';
+	$priority = '';
+	$subject = '';
+
+	if ($ticketStatus == "good") {
+	    $subject = 'Lead Account Created';
+	    $groupID = getenv("TICKET_GOOD_GROUP");
+	    $priority = 'MEDIUM';
+	} else {
+	    $subject = 'Error Creating Lead Account';
+	    $groupID = getenv("TICKET_BAD_GROUP");
+	    $priority = 'HIGH';
+	}
+
+	$groupID = '2'; // TODO remove override
+
+	$queryVars = '{"ticket_info": {"priority": "'.$priority.'", "subject": "'.$subject.'", "status": "OPEN", "ticket_group_id": "'.$groupID.'", "description": "'.$desc.'"}}';
+	$query = '{"query":"mutation createTicket($ticket_info: CreateInternalTicketMutationInput) {createInternalTicket(input: $ticket_info) {id}}", "variables":'.$queryVars.'}';
+
+	return $this->doSonarQuery($query);
     }
 
     /**
@@ -264,6 +286,7 @@ class AuthenticationController extends Controller
 
 	$email = trim($request->input('email'));
 	$phone = trim($request->input('phone'));
+	$phoneExt = trim($request->input('ext'));
 	$plan = trim($request->input('plan'));
 	$currentProvider = trim($request->input('currentProvider'));
 	$referrer = trim($request->input('referrer'));
@@ -278,6 +301,8 @@ class AuthenticationController extends Controller
 	$planID = explode(":", $plan)[0];
 	$acctTypeID = explode(":", $plan)[1];
 
+	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.' Ext: '.$phoneExt.'<br>Plan ID: '.$planID.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.', Apt #: '.$serviceLine2.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.' '.$serviceLat.' '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.', Apt #: '.$billingLine2.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
+
 	$doServiceLine2 = '';
 
 	if (strlen($serviceLine2) > 0) {
@@ -288,13 +313,16 @@ class AuthenticationController extends Controller
 
 	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
-	list($addrStatus, $addrOutput) = $this->doSonarQuery($request, $addrQuery);
-        if ($addrStatus != "success") {
-            return redirect()->back()->withErrors(utrans("Error: ".$addrOutput, [], $request));
+	list($addrStatus, $addrOutput) = $this->doSonarQuery($addrQuery);
+	if ($addrStatus != "success") {
+	    $ticketBody = 'Error Creating New Address: '.$addrOutput.'<br><br>'.$ticketBody;
+	    $this->doTicket($ticketBody, "bad");
+	    return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
 	}
 
-	// need to handle phone # extensions
 	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
+
+	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID;
 
 	$doBillingLine2 = '';
 
@@ -302,55 +330,49 @@ class AuthenticationController extends Controller
 	    $doBillingLine2 = ', "line2": "'.$billingLine2.'"';
 	}
 
-	$noteMsg = '';
+	$doPhoneExt = '';
 
-	if (strlen($companyName) > 0) {
-	    $noteMsg = 'Company Name: '.$companyName;
+	// remove + from extension if exists
+	$extReplaces = array("+");
+	$phoneExt = str_replace($extReplaces, "", $phoneExt);
+
+	if (strlen($phoneExt) > 0) {
+	    $doPhoneExt = ', "extension": "'.$phoneExt.'"';
 	}
 
-	if (strlen($currentProvider) > 0) {
-            $noteMsg = $noteMsg.' Current Provider: '.$currentProvider;
-	}
-
-	if (strlen($referrer) > 0) {
-            $noteMsg = $noteMsg.' Heard About Us: '.$referrer;
-	}
-
-	$doNoteMsg = '';
-
-	if (strlen($noteMsg) > 0) {
-	    $doNoteMsg = ', "note": {"message": "'.$noteMsg.'", "priority": "NORMAL"}';
-	}
-
-	// need to handle phone # ext
-	$phoneReplaces = array("(", ")", "-", " ");
-
-	$phone = str_replace($phoneReplaces, "", $phone);
-
-	$leadVars = '{"lead_account": {"name": "'.$name.'"'.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "'.$billingLine1.'"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
+	$leadVars = '{"lead_account": {"name": "'.$name.'"'.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "'.$billingLine1.'"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"'.$doPhoneExt.'}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
 
 	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
 
-	list($leadStatus, $leadOutput) = $this->doSonarQuery($request, $leadQuery);
+	list($leadStatus, $leadOutput) = $this->doSonarQuery($leadQuery);
         if ($leadStatus != "success") {
-            return redirect()->back()->withErrors(utrans("Error: ".$leadOutput, [], $request));
+            $ticketBody = 'Error Creating Lead Account: '.$leadOutput.'<br><br>'.$ticketBody;
+            $this->doTicket($ticketBody, "bad");
+            return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
 	}
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
+
+	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID;
 
 	$attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
 
 	$attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
 
-	list($attachStatus, $attachOutput) = $this->doSonarQuery($request, $attachServiceQuery);
+	list($attachStatus, $attachOutput) = $this->doSonarQuery($attachServiceQuery);
 	if ($attachStatus != "success") {
-	    return redirect()->back()->withErrors(utrans("Error: ".$attachOutput, [], $request));
+            $ticketBody = 'Error Adding Service Plan to Account: '.$attachOutput.'<br><br>'.$ticketBody;
+            $this->doTicket($ticketBody, "bad");
+            return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
 	}
 
 	// $emailRequest = new LookupEmailRequest();
 	// $emailRequest->mergeIfMissing(['email' => $email]);
 
 	// return $this->lookupEmail($emailRequest);
+
+	$this->doTicket($ticketBody, "good");
+
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
             ->with('success', utrans("leads.leadCreated", [], $request));

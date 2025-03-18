@@ -38,6 +38,7 @@ if [ -f .env ]; then
     docker-compose stop
     sed -i '/API_PASSWORD=/d' .env
     sed -i '/PORTAL_USER_KEY=/d' .env
+    sed -i '/PLACES_KEY=/d' .env
 
     source .env
 fi
@@ -62,6 +63,10 @@ read -ep "Enter your Company ID: " -i "${COMPANY_ID:-}" COMPANY_ID
 read -ep "Enter your Lead Status ID: " -i "${LEAD_STATUS_ID:-}" LEAD_STATUS_ID
 echo "Selectable Plans. Format: 'planID1:acctTypeID1:planName1;planID2:acctTypeID2:planName2'. Handles spaces in the plan names. Doesn't matter if last/only item in list has a semicolon at the end."
 read -ep "Enter: " -i "${SELECTABLE_PLANS:-}" SELECTABLE_PLANS
+read -ep "Enter the Ticket Group ID for successful lead creations: " i- "${TICKET_GOOD_GROUP}" TICKET_GOOD_GROUP
+read -ep "Enter the Ticket Group ID for unusccessful lead creations: " i- "${TICKET_BAD_GROUP}" TICKET_BAD_GROUP
+read -esp "Enter your Google Places API Key (output will not be displayed): " PLACES_KEY
+echo
 
 TRIMMED_SONAR_URL=$(echo "$SONAR_URL" | sed 's:/*$::')
 
@@ -76,6 +81,9 @@ cat <<- EOF > ".env"
         COMPANY_ID=$COMPANY_ID
         LEAD_STATUS_ID=$LEAD_STATUS_ID
         SELECTABLE_PLANS=$SELECTABLE_PLANS
+        PLACES_KEY=$PLACES_KEY
+        TICKET_GOOD_GROUP=$TICKET_GOOD_GROUP
+        TICKET_BAD_GROUP=$TICKET_BAD_GROUP
 EOF
 
 export APP_KEY
@@ -88,6 +96,7 @@ export PORTAL_USER_KEY
 export COMPANY_ID
 export LEAD_STATUS_ID
 export SELECTABLE_PLANS
+export PLACES_KEY
 
 docker pull sonarsoftware/customerportal:stable
 
@@ -108,7 +117,7 @@ docker-compose run --rm \
     -p 80:80 \
     -p 443:443 \
     --entrypoint "\
-      certbot certonly --test-cert --standalone \
+      certbot certonly --standalone \
         $email_arg \
         -d $NGINX_HOST \
         --rsa-key-size 4096 \
@@ -126,7 +135,7 @@ echo "### Reconfiguring renewal method to webroot..."
 
 docker-compose run --rm \
     --entrypoint "\
-      certbot certonly --test-cert --webroot \
+      certbot certonly --webroot \
         -d $NGINX_HOST \
         -w /var/www/certbot \
         --force-renewal" certbot
