@@ -89,7 +89,7 @@
             {!! Form::number("serviceLong",null,['id' => 'serviceLong', 'placeholder' => trans("leads.addrLong",[],$language)]) !!}
 	 </div>
 	 </div>
-	 <h1 style="font-size: 20px">{{trans("leads.billingAddrHeader",[],$language)}}<a class="button" id="sameAddrBtn" style="margin: 0 0 0 10px">Same as Above</a></h1>
+	 <h1 style="font-size: 20px">{{trans("leads.billingAddrHeader",[],$language)}}<a class="button" id="sameAddrBtn" style="margin: 0 0 0 10px">{{trans("leads.copyBtn",[],$language)}}</a></h1>
 	 <div class="label label-text" style="display: inline-block; width: 69%">
             <label for="billingLine1">{{trans("leads.addrLine1",[],$language)}}</label>
             {!! Form::text("billingLine1",null,['id' => 'billingLine1', 'placeholder' => trans("leads.location",[],$language)]) !!}

@@ -97,6 +97,8 @@ export PORTAL_USER_KEY
 export COMPANY_ID
 export LEAD_STATUS_ID
 export SELECTABLE_PLANS
+export TICKET_GOOD_GROUP
+export TICKET_BAD_GROUP
 export PLACES_KEY
 
 docker pull sonarsoftware/customerportal:stable
@@ -118,7 +120,7 @@ docker-compose run --rm \
     -p 80:80 \
     -p 443:443 \
     --entrypoint "\
-      certbot certonly --standalone \
+      certbot --test-cert certonly --standalone \
         $email_arg \
         -d $NGINX_HOST \
         --rsa-key-size 4096 \
@@ -136,7 +138,7 @@ echo "### Reconfiguring renewal method to webroot..."
 
 docker-compose run --rm \
     --entrypoint "\
-      certbot certonly --webroot \
+      certbot --test-cert certonly --webroot \
         -d $NGINX_HOST \
         -w /var/www/certbot \
         --force-renewal" certbot

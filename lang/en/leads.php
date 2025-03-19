@@ -3,6 +3,7 @@
 return [
     'leadDescription' => 'Fill out your information here and a representative will reach out shortly to discuss scheduling and other information.',
     'back' => 'Go back to the login page',
+    'copyBtn' => 'Same as Service Address',
     'infoHeader' => 'Your Information',
     'firstName' => 'First Name',
     'lastName' => 'Last Name',

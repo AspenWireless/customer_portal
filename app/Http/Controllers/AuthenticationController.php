@@ -172,6 +172,77 @@ class AuthenticationController extends Controller
             ->with('success', utrans('root.emailFound', [], $request));
     }
 
+    /*
+     * Lookup an email after creating a new lead account. Shows a different success message
+     */
+    public function lookupEmailFromLead(LookupEmailRequest $request): RedirectResponse
+    {
+        if ($this->getThrottleValue('email_lookup', hash('sha256', $request->getClientIp())) > 10) {
+            return redirect()->back()->withErrors(utrans('errors.tooManyFailedLookupAttempts', [], $request));
+        }
+
+        $accountAuthenticationController = new AccountAuthenticationController();
+        try {
+            $result = $accountAuthenticationController->lookupEmail($request->input('email'));
+        } catch (Exception $e) {
+            $this->incrementThrottleValue('email_lookup', hash('sha256', $request->getClientIp()));
+            Log::info($e->getMessage());
+
+            return redirect()->back()->withErrors(utrans('errors.emailLookupFailed', [], $request));
+        }
+
+        $creationToken = CreationToken::where('account_id', '=', $result->account_id)
+            ->where('contact_id', '=', $result->contact_id)
+            ->first();
+
+        if ($creationToken === null) {
+            $creationToken = new CreationToken([
+                'token' => uniqid(),
+                'email' => strtolower($result->email_address),
+                'account_id' => $result->account_id,
+                'contact_id' => $result->contact_id,
+            ]);
+        } else {
+            $creationToken->token = uniqid();
+        }
+
+        $creationToken->save();
+
+        $languageService = App::make(LanguageService::class);
+        $language = $languageService->getUserLanguage($request);
+        try {
+            Mail::send('emails.basic', [
+                'greeting' => trans('emails.greeting', [], $language),
+                'body' => trans('emails.accountCreateBody', [
+                    'isp_name' => config('app.name'),
+                    'portal_url' => config('app.url'),
+                    'creation_link' => config('app.url').'/create/'.$creationToken->token,
+                ], $language),
+                'deleteIfNotYou' => trans('emails.deleteIfNotYou', [], $language),
+            ], function ($m) use ($result, $request) {
+                $m->from(config('customer_portal.from_address'), config('customer_portal.from_name'));
+                $m->to($result->email_address, $result->email_address)
+                    ->subject(
+                        utrans(
+                            'emails.createAccount',
+                            ['companyName' => config('customer_portal.company_name')],
+                            $request
+                        )
+                    );
+            });
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+
+            return redirect()->back()->withErrors(utrans('errors.emailSendFailed', [], $request));
+        }
+
+        $this->resetThrottleValue('email_lookup', hash('sha256', $request->getClientIp()));
+
+        return redirect()
+            ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
+            ->with('success', utrans('leads.leadCreated', [], $request));
+    }
+
     /**
      * Show the account creation form
      */
@@ -304,7 +375,22 @@ class AuthenticationController extends Controller
 	    $planOut = 'Undecided';
 	}
 
-	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.' Ext: '.$phoneExt.'<br>Plan ID: '.$planID.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.', Apt #: '.$serviceLine2.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.' '.$serviceLat.' '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.', Apt #: '.$billingLine2.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
+	$extOut = '';
+	if (strlen($phoneExt) > 0) {
+	    $extOut = ' Ext: '.$phoneExt;
+	}
+
+	$serviceLine2Out = '';
+	if (strlen($serviceLine2) > 0) {
+	    $serviceLine2Out = ', Apt #: '.$serviceLine2;
+	}
+
+	$billingLine2Out = '';
+	if (strlen($billingLine2) > 0) {
+	    $billingLine2Out = ', Apt #: ';
+	}
+
+	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.$extOut.'<br>Plan ID: '.$planOut.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.$serviceLine2Out.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.' '.$serviceLat.' '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.$billingLine2Out.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
 
 	$doServiceLine2 = '';
 
@@ -325,7 +411,7 @@ class AuthenticationController extends Controller
 
 	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
 
-	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID;
+	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href="">View</a>';
 
 	$doBillingLine2 = '';
 
@@ -356,7 +442,7 @@ class AuthenticationController extends Controller
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
 
-	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID;
+	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href="">View</a>';
 
 	if ($planID != '0') {
 	    $attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
@@ -371,12 +457,15 @@ class AuthenticationController extends Controller
             }
 	}
 
-	// $emailRequest = new LookupEmailRequest();
-	// $emailRequest->mergeIfMissing(['email' => $email]);
+	list($ticStatus, $ticOutput) = $this->doTicket($ticketBody, "good");
+	if ($ticStatus != "success") {
+	    return redirect()->back()->withErrors($ticOutput);
+	}
 
-	// return $this->lookupEmail($emailRequest);
+	//$emailRequest = new LookupEmailRequest();
+	//$emailRequest->mergeIfMissing(['email' => $email]);
 
-	$this->doTicket($ticketBody, "good");
+	//return $this->lookupEmailFromLead($emailRequest);
 
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
