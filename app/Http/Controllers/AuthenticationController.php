@@ -175,7 +175,7 @@ class AuthenticationController extends Controller
     /*
      * Lookup an email after creating a new lead account. Shows a different success message
      */
-    public function lookupEmailFromLead(LookupEmailRequest $request): RedirectResponse
+    public function lookupEmailFromLead(LookupEmailRequest $request, string $acctID, string $contID): RedirectResponse
     {
         if ($this->getThrottleValue('email_lookup', hash('sha256', $request->getClientIp())) > 10) {
             return redirect()->back()->withErrors(utrans('errors.tooManyFailedLookupAttempts', [], $request));
@@ -191,16 +191,16 @@ class AuthenticationController extends Controller
             return redirect()->back()->withErrors(utrans('errors.leadCreationFailed', [], $request));
         }
 
-        $creationToken = CreationToken::where('account_id', '=', $result->account_id)
-            ->where('contact_id', '=', $result->contact_id)
+        $creationToken = CreationToken::where('account_id', '=', $acctID)
+            ->where('contact_id', '=', $contID)
             ->first();
 
         if ($creationToken === null) {
             $creationToken = new CreationToken([
                 'token' => uniqid(),
                 'email' => strtolower($result->email_address),
-                'account_id' => $result->account_id,
-                'contact_id' => $result->contact_id,
+                'account_id' => $acctID,
+                'contact_id' => $contID,
             ]);
         } else {
             $creationToken->token = uniqid();
@@ -329,12 +329,39 @@ class AuthenticationController extends Controller
      */
     public function createLead(LeadCreationRequest $request): RedirectResponse
     {
+	// verify not spamming server
 	if ($this->getThrottleValue('create_lead', hash('sha256', $request->getClientIp())) > 5) {
             return redirect()->back()->withErrors(utrans('errors.tooManyFailedLeadAttempts', [], $request));
 	}
 
 	$this->incrementThrottleValue('create_lead', hash('sha256', $request->getClientIp()));
 
+	// verify captcha
+	$captcha = trim($request->input('g-recaptcha-response'));
+
+	$captchaKey = getenv('CAPTCHA_SECRET_KEY');
+	$captchaURL = 'https://www.google.com/recaptcha/api/siteverify?secret='.$captchaKey.'&response='.$captcha;
+
+        $ch = curl_init();
+
+        curl_setopt($ch, CURLOPT_URL, $captchaURL);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_POST, 1);
+
+        $captchaResponse = curl_exec($ch);
+        curl_close($ch);
+
+        if (curl_errno($ch)) {
+	    return redirect()->back()->withErrors('Captcha Failed');
+        }
+
+	$decodedResponse = json_decode($captchaResponse);
+
+	if ($decodedResponse->success != "true") {
+	    return redirect()->back()->withErrors('Captcha Failed');
+	}
+
+	// get form vars
 	$firstName = trim($request->input('firstName'));
 	$lastName = trim($request->input('lastName'));
 	$companyName = trim($request->input('companyName'));
@@ -360,6 +387,7 @@ class AuthenticationController extends Controller
 	$currentProvider = trim($request->input('currentProvider'));
 	$referrer = trim($request->input('referrer'));
 
+	// get env vars for sonar queries
 	$endpoint = getenv('SONAR_URL') . "/api/graphql";
 	$authToken = getenv('PORTAL_USER_KEY');
 	$companyID = getenv('COMPANY_ID');
@@ -370,6 +398,7 @@ class AuthenticationController extends Controller
 	$planID = explode(":", $plan)[0];
 	$acctTypeID = explode(":", $plan)[1];
 
+	// only include certain things in ticket body if they exist
 	$planOut = $planID;
 	if ($planOut == '0') {
 	    $planOut = 'Undecided';
@@ -390,6 +419,7 @@ class AuthenticationController extends Controller
 	    $billingLine2Out = ', Apt #: '.$billingLine2;
 	}
 
+	// ticket body for lead creation
 	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.$extOut.'<br>Plan ID: '.$planOut.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.$serviceLine2Out.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.'<br>'.$serviceLat.', '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.$billingLine2Out.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
 
 	$doServiceLine2 = '';
@@ -398,10 +428,12 @@ class AuthenticationController extends Controller
 	    $doServiceLine2 = ', "line2": "'.$serviceLine2.'"';
 	}
 
+	// create address query
 	$addrVars = '{"lead_address": {"line1": "'.$serviceLine1.'"'.$doServiceLine2.', "city": "'.$serviceCity.'", "subdivision": "US_'.$serviceState.'", "zip": "'.$serviceZip.'", "country": "US", "latitude": '.$serviceLat.', "longitude": '.$serviceLong.'}}';
 
 	$addrQuery = '{"query":"mutation createLeadAddress($lead_address: CreateServiceableAddressMutationInput) {createServiceableAddress(input: $lead_address) {id}}", "variables":'.$addrVars.'}';
 
+	// if err, make error ticket and return to main page with error message
 	list($addrStatus, $addrOutput) = $this->doSonarQuery($addrQuery);
 	if ($addrStatus != "success") {
 	    $ticketBody = 'Error Creating New Address: '.$addrOutput.'<br><br>'.$ticketBody;
@@ -411,6 +443,7 @@ class AuthenticationController extends Controller
 
 	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
 
+	// add addr id to ticket body
 	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href=\"/app#/addresses/show/'.$addrID.'\">View Address</a>';
 
 	$doBillingLine2 = '';
@@ -429,9 +462,10 @@ class AuthenticationController extends Controller
 	    $doPhoneExt = ', "extension": "'.$phoneExt.'"';
 	}
 
+	// create lead account query
 	$leadVars = '{"lead_account": {"name": "'.$name.'"'.', "serviceable_address_id": "'.$addrID.'", "mailing_address": {"line1": "'.$billingLine1.'"'.$doBillingLine2.', "city": "'.$billingCity.'", "subdivision": "US_'.$billingState.'", "zip": "'.$billingZip.'", "country": "US"}, "primary_contact": {"name": "'.$name.'", "email_address": "'.$email.'", "phone_numbers": [{"phone_number_type_id": 3, "country": "US", "number": "'.$phone.'"'.$doPhoneExt.'}]}, "account_status_id": "'.$leadStatusID.'", "account_type_id": "'.$acctTypeID.'", "company_id": "'.$companyID.'"}}';
 
-	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id}}", "variables":'.$leadVars.'}';
+	$leadQuery = '{"query":"mutation createLeadAccount($lead_account: CreateAccountMutationInput) {createAccount(input: $lead_account) {id, contacts {entities {id}}}}", "variables":'.$leadVars.'}';
 
 	list($leadStatus, $leadOutput) = $this->doSonarQuery($leadQuery);
         if ($leadStatus != "success") {
@@ -441,9 +475,12 @@ class AuthenticationController extends Controller
 	}
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
+	$contID = $leadOutput->{'data'}->createAccount->contacts->{'entities'}[0]->id;
 
+	// add acct id to ticket body
 	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href=\"/app#/accounts/show/'.$acctID.'\">View Account</a>';
 
+	// attach plan to account if they selected one
 	if ($planID != '0') {
 	    $attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
 
@@ -457,12 +494,13 @@ class AuthenticationController extends Controller
             }
 	}
 
+	// submit success ticket & redirect to new acct creation
 	$this->doTicket($ticketBody, "good");
 
 	$emailRequest = new LookupEmailRequest();
 	$emailRequest->mergeIfMissing(['email' => $email]);
 
-	return $this->lookupEmailFromLead($emailRequest);
+	return $this->lookupEmailFromLead($emailRequest, $acctID, $contID);
 
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
@@ -507,7 +545,7 @@ class AuthenticationController extends Controller
                 $request->input('username'),
                 $request->input('password')
             );
-        } catch (Exception $e) {
+	} catch (Exception $e) {
             return redirect()->back()->withErrors($e->getMessage())->withInput();
         }
 

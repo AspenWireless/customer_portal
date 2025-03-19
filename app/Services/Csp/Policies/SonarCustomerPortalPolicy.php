@@ -40,11 +40,17 @@ class SonarCustomerPortalPolicy extends Basic
                 'https://fonts.googleapis.com',
                 'https://fonts.gstatic.com',
             ])
-            ->addNonceForDirective(Directive::SCRIPT)
+	    ->addNonceForDirective(Directive::SCRIPT)
+
+            ->addDirective(Directive::FRAME_ANCESTORS, [
+		'self',
+                'www.google.com',
+            ])
 
             ->addDirective(Directive::FRAME, [
                 'self',
-                'js.stripe.com',
+		'js.stripe.com',
+		'www.google.com',
             ])
 
             ->addDirective(Directive::FRAME_ANCESTORS, Keyword::NONE)
@@ -58,13 +64,14 @@ class SonarCustomerPortalPolicy extends Basic
 
             ->addDirective(Directive::CONNECT, [
                 'self',
-                'maps.googleapis.com', // Required for address autofill on lead creation form
+		'maps.googleapis.com', // Required for address autofill on lead creation form
+		'www.google.com',
             ])
 
             ->addDirective(Directive::SCRIPT, [
                 'self',
                 'maps.googleapis.com',
-            ])
+	    ])
 
             ->addDirective(Directive::SCRIPT, [
                 'self',

@@ -7,7 +7,7 @@
          <img class="logo-form" src="/assets/img/logo.png">
          </a>
          <h1 class="fake-half">{{trans("root.signup",[],$language)}}</h1>
-	 <p>{{trans("leads.leadDescription",[],$language)}}</p>
+	 <p>{{trans('leads.leadDescription', ['ispName' => config("customer_portal.company_name")],$language)}}</p>
 	 <h1 style="font-size: 20px">{{trans("leads.infoHeader", [], $language)}}</h1>
 	 {!! Form::open(['action' => ['\App\Http\Controllers\AuthenticationController@createLead'], 'id' => 'createForm', 'method' => 'post']) !!}
          <div class="label label-text" style="display: inline-block; width: 49%">
@@ -113,8 +113,9 @@
          <div class="label label-text">
             <label for="billingZip">{{trans("leads.addrZip",[],$language)}}</label>
             {!! Form::number("billingZip",null,['id' => 'billingZip', 'placeholder' => trans("leads.addrZip",[],$language)]) !!}
-         </div>
-         <div class="half vcenter label">
+	 </div>
+         <div class="g-recaptcha" data-sitekey="{{getenv("CAPTCHA_SITE_KEY")}}"></div>
+         <div class="half vcenter label" style="margin-top: 16px">
             <div><button type="submit" value="{{trans("actions.submit",[],$language)}}">{{trans("actions.submit",[],$language)}}</button></div>
          </div>
          {!! Form::close() !!}
@@ -132,6 +133,7 @@ var passwordStrength = {{config("customer_portal.password_strength_required")}};
 </script>
 <script type="text/javascript" src="/assets/js/pages/register/register.js"></script>
 <script async src="https://maps.googleapis.com/maps/api/js?key={{getenv("PLACES_KEY")}}&loading=async&libraries=places&callback=initAutocomplete"></script>
+<script nonce="{{ csp_nonce() }}" src="https://www.google.com/recaptcha/api.js" async defer></script>
 <script nonce="{{ csp_nonce() }}">
 // init google places autocomplete
 let autocomplete;
