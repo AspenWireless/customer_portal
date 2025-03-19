@@ -62,9 +62,10 @@ echo
 read -ep "Enter your Company ID: " -i "${COMPANY_ID:-}" COMPANY_ID
 read -ep "Enter your Lead Status ID: " -i "${LEAD_STATUS_ID:-}" LEAD_STATUS_ID
 echo "Selectable Plans. Format: 'planID1:acctTypeID1:planName1;planID2:acctTypeID2:planName2'. Handles spaces in the plan names. Doesn't matter if last/only item in list has a semicolon at the end."
+echo
 read -ep "Enter: " -i "${SELECTABLE_PLANS:-}" SELECTABLE_PLANS
-read -ep "Enter the Ticket Group ID for successful lead creations: " i- "${TICKET_GOOD_GROUP}" TICKET_GOOD_GROUP
-read -ep "Enter the Ticket Group ID for unusccessful lead creations: " i- "${TICKET_BAD_GROUP}" TICKET_BAD_GROUP
+read -ep "Enter the Ticket Group ID for successful lead creations: " -i "${TICKET_GOOD_GROUP:-}" TICKET_GOOD_GROUP
+read -ep "Enter the Ticket Group ID for unusccessful lead creations: " -i "${TICKET_BAD_GROUP:-}" TICKET_BAD_GROUP
 read -esp "Enter your Google Places API Key (output will not be displayed): " PLACES_KEY
 echo
 

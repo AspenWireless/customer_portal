@@ -247,8 +247,6 @@ class AuthenticationController extends Controller
 	    $priority = 'HIGH';
 	}
 
-	$groupID = '2'; // TODO remove override
-
 	$queryVars = '{"ticket_info": {"priority": "'.$priority.'", "subject": "'.$subject.'", "status": "OPEN", "ticket_group_id": "'.$groupID.'", "description": "'.$desc.'"}}';
 	$query = '{"query":"mutation createTicket($ticket_info: CreateInternalTicketMutationInput) {createInternalTicket(input: $ticket_info) {id}}", "variables":'.$queryVars.'}';
 
@@ -300,6 +298,11 @@ class AuthenticationController extends Controller
 
 	$planID = explode(":", $plan)[0];
 	$acctTypeID = explode(":", $plan)[1];
+
+	$planOut = $planID;
+	if ($planOut == '0') {
+	    $planOut = 'Undecided';
+	}
 
 	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.' Ext: '.$phoneExt.'<br>Plan ID: '.$planID.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.', Apt #: '.$serviceLine2.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.' '.$serviceLat.' '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.', Apt #: '.$billingLine2.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
 
@@ -355,15 +358,17 @@ class AuthenticationController extends Controller
 
 	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID;
 
-	$attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
+	if ($planID != '0') {
+	    $attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
 
-	$attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
+            $attachServiceQuery = '{"query":"mutation attachAddrToLead($addr_to_lead: AddServiceToAccountMutationInput) {addServiceToAccount(input: $addr_to_lead) {service_id}}", "variables":'.$attachServiceVars.'}';
 
-	list($attachStatus, $attachOutput) = $this->doSonarQuery($attachServiceQuery);
-	if ($attachStatus != "success") {
-            $ticketBody = 'Error Adding Service Plan to Account: '.$attachOutput.'<br><br>'.$ticketBody;
-            $this->doTicket($ticketBody, "bad");
-            return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
+            list($attachStatus, $attachOutput) = $this->doSonarQuery($attachServiceQuery);
+            if ($attachStatus != "success") {
+		$ticketBody = 'Error Adding Service Plan to Account: '.$attachOutput.'<br><br>'.$ticketBody;
+		$this->doTicket($ticketBody, "bad");
+		return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
+            }
 	}
 
 	// $emailRequest = new LookupEmailRequest();
