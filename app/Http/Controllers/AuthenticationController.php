@@ -411,7 +411,7 @@ class AuthenticationController extends Controller
 
 	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
 
-	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href=\"/app#/addresses/show/'.$addrID.'\">View</a>';
+	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href=\"/app#/addresses/show/'.$addrID.'\">View Address</a>';
 
 	$doBillingLine2 = '';
 
@@ -442,7 +442,7 @@ class AuthenticationController extends Controller
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
 
-	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href=\"/app#/accounts/show/'.$acctID.'\">View</a>';
+	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href=\"/app#/accounts/show/'.$acctID.'\">View Account</a>';
 
 	if ($planID != '0') {
 	    $attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';

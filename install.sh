@@ -66,6 +66,7 @@ echo
 read -ep "Enter: " -i "${SELECTABLE_PLANS:-}" SELECTABLE_PLANS
 read -ep "Enter the Ticket Group ID for successful lead creations: " -i "${TICKET_GOOD_GROUP:-}" TICKET_GOOD_GROUP
 read -ep "Enter the Ticket Group ID for unusccessful lead creations: " -i "${TICKET_BAD_GROUP:-}" TICKET_BAD_GROUP
+read -ep "Enter your Support Contact Info (i.e. Email Address and/or Phone #. Format as '<email> or <phone>' if including both): " -i "${SUPPORT_CONTACT:-}" SUPPORT_CONTACT
 read -esp "Enter your Google Places API Key (output will not be displayed): " PLACES_KEY
 echo
 
@@ -85,6 +86,7 @@ cat <<- EOF > ".env"
         PLACES_KEY=$PLACES_KEY
         TICKET_GOOD_GROUP=$TICKET_GOOD_GROUP
         TICKET_BAD_GROUP=$TICKET_BAD_GROUP
+        SUPPORT_CONTACT=$SUPPORT_CONTACT
 EOF
 
 export APP_KEY
@@ -99,6 +101,7 @@ export LEAD_STATUS_ID
 export SELECTABLE_PLANS
 export TICKET_GOOD_GROUP
 export TICKET_BAD_GROUP
+export SUPPORT_CONTACT
 export PLACES_KEY
 
 docker pull sonarsoftware/customerportal:stable
