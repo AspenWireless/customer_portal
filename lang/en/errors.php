@@ -26,7 +26,7 @@ return [
     'resetTokenNotValid' => 'Password reset token is not valid. Please try resetting it again.',
     'invalidEmailAddress' => 'Email address does not match. Please try again.',
     'tooManyFailedLeadAttempts' => 'You\'ve submitted this form too many times in a short period of time. Please wait a few minutes and try again.',
-    'leadCreationFailed' => 'There was an issue processing your request. Please contact us TODO: env var for contact',
+    'leadCreationFailed' => 'There was an issue processing your request. A ticket has been created for you, and our support team will be reaching out soon. If you don\'t hear from us, please reach out at '.getenv("EMAIL_ADDRESS"),
     'tooManyFailedCreationAttempts' => 'You\'ve failed to create an account too many times in a short period of time. Please wait a few minutes and try again.',
     'tooManyFailedPasswordResets' => 'You\'ve failed to reset your password too many times in a short period of time. Please wait a few minutes and try again.',
     'couldNotFindAccount' => 'Sorry, but your account could not be found. Please try again later or try registering a new account.',

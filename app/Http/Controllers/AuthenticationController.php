@@ -188,7 +188,7 @@ class AuthenticationController extends Controller
             $this->incrementThrottleValue('email_lookup', hash('sha256', $request->getClientIp()));
             Log::info($e->getMessage());
 
-            return redirect()->back()->withErrors(utrans('errors.emailLookupFailed', [], $request));
+            return redirect()->back()->withErrors(utrans('errors.leadCreationFailed', [], $request));
         }
 
         $creationToken = CreationToken::where('account_id', '=', $result->account_id)
@@ -233,7 +233,7 @@ class AuthenticationController extends Controller
         } catch (Exception $e) {
             Log::error($e->getMessage());
 
-            return redirect()->back()->withErrors(utrans('errors.emailSendFailed', [], $request));
+            return redirect()->action([\App\Http\Controllers\AuthenticationController::class, 'index'])->withErrors(utrans('errors.leadCreationFailed', [], $request));
         }
 
         $this->resetThrottleValue('email_lookup', hash('sha256', $request->getClientIp()));
@@ -387,10 +387,10 @@ class AuthenticationController extends Controller
 
 	$billingLine2Out = '';
 	if (strlen($billingLine2) > 0) {
-	    $billingLine2Out = ', Apt #: ';
+	    $billingLine2Out = ', Apt #: '.$billingLine2;
 	}
 
-	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.$extOut.'<br>Plan ID: '.$planOut.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.$serviceLine2Out.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.' '.$serviceLat.' '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.$billingLine2Out.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
+	$ticketBody = 'Customer Name: '.$name.'<br>Company Name: '.$companyName.'<br>Email Address: '.$email.'<br>Phone Number: '.$phone.$extOut.'<br>Plan ID: '.$planOut.'<br>Account Type ID: '.$acctTypeID.'<br>Current Provider: '.$currentProvider.'<br>Heard About Us: '.$referrer.'<br>Service Address-<br>'.$serviceLine1.$serviceLine2Out.'<br>'.$serviceCity.', '.$serviceState.' '.$serviceZip.'<br>'.$serviceLat.', '.$serviceLong.'<br>Billing Address-<br>'.$billingLine1.$billingLine2Out.'<br>'.$billingCity.', '.$billingState.' '.$billingZip;
 
 	$doServiceLine2 = '';
 
@@ -406,12 +406,12 @@ class AuthenticationController extends Controller
 	if ($addrStatus != "success") {
 	    $ticketBody = 'Error Creating New Address: '.$addrOutput.'<br><br>'.$ticketBody;
 	    $this->doTicket($ticketBody, "bad");
-	    return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
+	    return redirect()->action([\App\Http\Controllers\AuthenticationController::class, 'index'])->withErrors(utrans("errors.leadCreationFailed", [], $request));
 	}
 
 	$addrID = $addrOutput->{'data'}->createServiceableAddress->id;
 
-	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href="">View</a>';
+	$ticketBody = $ticketBody . '<br>New Address ID: '.$addrID.' <a href=\"/app#/addresses/show/'.$addrID.'\">View</a>';
 
 	$doBillingLine2 = '';
 
@@ -437,12 +437,12 @@ class AuthenticationController extends Controller
         if ($leadStatus != "success") {
             $ticketBody = 'Error Creating Lead Account: '.$leadOutput.'<br><br>'.$ticketBody;
             $this->doTicket($ticketBody, "bad");
-            return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
+            return redirect()->action([\App\Http\Controllers\AuthenticationController::class, 'index'])->withErrors(utrans("errors.leadCreationFailed", [], $request));
 	}
 
 	$acctID = $leadOutput->{'data'}->createAccount->id;
 
-	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href="">View</a>';
+	$ticketBody = $ticketBody . '<br>Lead Account ID: '.$acctID.' <a href=\"/app#/accounts/show/'.$acctID.'\">View</a>';
 
 	if ($planID != '0') {
 	    $attachServiceVars = '{"addr_to_lead": {"account_id": "'.$acctID.'", "service_id": "'.$planID.'", "quantity": 1}}';
@@ -453,19 +453,16 @@ class AuthenticationController extends Controller
             if ($attachStatus != "success") {
 		$ticketBody = 'Error Adding Service Plan to Account: '.$attachOutput.'<br><br>'.$ticketBody;
 		$this->doTicket($ticketBody, "bad");
-		return redirect()->back()->withErrors(utrans("errors.leadCreationFailed", [], $request));
+		return redirect()->action([\App\Http\Controllers\AuthenticationController::class, 'index'])->withErrors(utrans("errors.leadCreationFailed", [], $request));
             }
 	}
 
-	list($ticStatus, $ticOutput) = $this->doTicket($ticketBody, "good");
-	if ($ticStatus != "success") {
-	    return redirect()->back()->withErrors($ticOutput);
-	}
+	$this->doTicket($ticketBody, "good");
 
-	//$emailRequest = new LookupEmailRequest();
-	//$emailRequest->mergeIfMissing(['email' => $email]);
+	$emailRequest = new LookupEmailRequest();
+	$emailRequest->mergeIfMissing(['email' => $email]);
 
-	//return $this->lookupEmailFromLead($emailRequest);
+	return $this->lookupEmailFromLead($emailRequest);
 
 	return redirect()
             ->action([\App\Http\Controllers\AuthenticationController::class, 'index'])
