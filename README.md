@@ -1,3 +1,18 @@
+# Extra Setup for Lead Gen page:
+ - Add create account & create address perms to portal user role (can do through web interface)
+ - Get api key for customer portal api user
+ - Get the Lead field ID from sonar instance
+ - Get the company ID from sonar instance
+ - Get the selectable plan IDs/their names/the IDs for each plans account type (i.e. residential or commercial plan etc)
+ - Get google places API key for autofill on addresses & add portal domain to gcloud places authorized domains
+ - Hit a restart (docker compose down & up) after running install script
+
+If you ever need to edit above vars, edit the .env file and docker compose down & up
+
+Remove .env file if you ever need to rerun install script (Not recommended, will mess up SSL certs if you reinstall too many times)
+
+Always docker compose down & up after running install script
+
 [![Customer Portal](https://i.imgur.com/AMoOuyg.png)](https://github.com/SonarSoftwareInc/customer_portal)
 
 # Sonar Customer Portal
